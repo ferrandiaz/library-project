@@ -33,15 +33,12 @@ public class LibraryMainActivity extends ListActivity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.library_layout);
-		Authenticator.setDefault(new Authenticator() {
-			protected PasswordAuthentication getPasswordAuthentication() {
-				return new PasswordAuthentication("test", "test".toCharArray());
-			}
-		});
 		bookList = new ArrayList<>();
 		adapter = new BookAdapter(this, bookList);
 		setListAdapter(adapter);
-		(new FetchBooksTask()).execute();
+		String Title = (String) getIntent().getExtras().get("title");
+		String Author = (String) getIntent().getExtras().get("author");
+		(new FetchBooksTask()).execute(Title, Author);
 	}
 
 	
@@ -62,19 +59,20 @@ public class LibraryMainActivity extends ListActivity {
 		Intent intent = new Intent(this, BookDetailActivity.class);
 		intent.putExtra("url", book.getLinks().get("self").getTarget());
 		startActivity(intent);
+	
 
 		
 	}
 	
-	private class FetchBooksTask extends AsyncTask<Void, Void, BookCollection> {
+	private class FetchBooksTask extends AsyncTask<String, Void, BookCollection> {
 		private ProgressDialog pd;
 
 		@Override
-		protected BookCollection doInBackground(Void... params) {
+		protected BookCollection doInBackground(String... params) {
 			BookCollection Books = null;
 			try {
 				Books = LibraryAPI.getInstance(LibraryMainActivity.this)
-						.getBooks();
+						.searchBooks(params[0], params[1]);
 			} catch (LibraryAndroidException e) {
 				e.printStackTrace();
 			}

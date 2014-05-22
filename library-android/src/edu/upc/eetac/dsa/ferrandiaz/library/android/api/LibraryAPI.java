@@ -3,6 +3,7 @@ package edu.upc.eetac.dsa.ferrandiaz.library.android.api;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -99,7 +100,7 @@ public class LibraryAPI {
 				map.put(s, link);
 		}
 	}
-
+//This function is not used in this app, i did it at first to try to get a BookCollection without restrictions (works)
 	public BookCollection getBooks() throws LibraryAndroidException {
 
 		Log.d(TAG, "getBooks()");
@@ -199,9 +200,9 @@ public class LibraryAPI {
 	}
 
 	public ReviewCollection getReviews(String urlReview)
-	
-			throws LibraryAndroidException {
-		System.out.println(urlReview);
+
+	throws LibraryAndroidException {
+
 		ReviewCollection reviews = new ReviewCollection();
 		HttpURLConnection urlConnection = null;
 		try {
@@ -220,7 +221,7 @@ public class LibraryAPI {
 
 			JSONObject jsonObject = new JSONObject(sb.toString());
 			JSONArray jsonReviews = jsonObject.getJSONArray("reviews");
-			for(int i = 0; i<jsonReviews.length(); i++){
+			for (int i = 0; i < jsonReviews.length(); i++) {
 				Review review = new Review();
 				JSONObject jsonReview = jsonReviews.getJSONObject(i);
 				review.setReviewid(jsonReview.getString("reviewid"));
@@ -246,7 +247,7 @@ public class LibraryAPI {
 
 		return reviews;
 	}
-	
+
 	public Review getReview(String urlReview) throws LibraryAndroidException {
 		Review review = new Review();
 		HttpURLConnection urlConnection = null;
@@ -283,6 +284,114 @@ public class LibraryAPI {
 			throw new LibraryAndroidException("Exception parsing response");
 		}
 		return review;
+
+	}
+
+	public Review createReview(String urlReview, String reviewtext)
+			throws LibraryAndroidException {
+
+		Review review = new Review();
+		review.setReview(reviewtext);
+		HttpURLConnection urlConnection = null;
+		try {
+			JSONObject jsonReview = createJsonReview(review);
+			URL urlPostReview = new URL(urlReview);
+			urlConnection = (HttpURLConnection) urlPostReview.openConnection();
+			urlConnection.setRequestProperty("Accept",
+					MediaType.LIBRARY_API_REVIEW);
+			urlConnection.setRequestProperty("Content-Type",
+					MediaType.LIBRARY_API_REVIEW);
+			urlConnection.setRequestMethod("POST");
+			urlConnection.setDoInput(true);
+			urlConnection.setDoOutput(true);
+			urlConnection.connect();
+			PrintWriter writer = new PrintWriter(
+					urlConnection.getOutputStream());
+			writer.println(jsonReview.toString());
+			writer.close();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(
+					urlConnection.getInputStream()));
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = reader.readLine()) != null) {
+				sb.append(line);
+			}
+			jsonReview = new JSONObject(sb.toString());
+
+			review.setReview(jsonReview.getString("review"));
+
+			JSONArray jsonLinks = jsonReview.getJSONArray("links");
+			parseLinks(jsonLinks, review.getLinks());
+		} catch (JSONException e) {
+			Log.e(TAG, e.getMessage(), e);
+			throw new LibraryAndroidException("Error parsing response");
+		} catch (IOException e) {
+			Log.e(TAG, e.getMessage(), e);
+			throw new LibraryAndroidException("Error getting response");
+		} finally {
+			if (urlConnection != null)
+				urlConnection.disconnect();
+		}
+		return review;
+	}
+
+	private JSONObject createJsonReview(Review review) throws JSONException {
+		JSONObject jsonReview = new JSONObject();
+		jsonReview.put("review", review.getReview());
+
+		return jsonReview;
+	}
+
+	public BookCollection searchBooks(String author, String title) throws LibraryAndroidException {
+		BookCollection books = new BookCollection();
+		HttpURLConnection urlConnection = null;
+		try{
+			String url = rootAPI.getLinks().get("books").getTarget() + "/search?author=" + author + "&title=" + title;
+		urlConnection = (HttpURLConnection) new URL(url).openConnection();
+		urlConnection.setRequestMethod("GET");
+		urlConnection.setDoInput(true);
+		urlConnection.connect();
+		} catch (IOException e) {
+			throw new LibraryAndroidException(
+					"Can't connect to Beeter API Web Service");
+		}
+		BufferedReader reader;
+		try {
+			reader = new BufferedReader(new InputStreamReader(
+					urlConnection.getInputStream()));
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = reader.readLine()) != null) {
+				sb.append(line);
+			}JSONObject jsonObject = new JSONObject(sb.toString());
+			JSONArray jsonLinks = jsonObject.getJSONArray("links");
+			parseLinks(jsonLinks, books.getLinks());
+
+			books.setNewestTimestamp(jsonObject.getLong("newestTimestamp"));
+			books.setOldestTimestamp(jsonObject.getLong("oldestTimestamp"));
+			JSONArray jsonBooks = jsonObject.getJSONArray("books");
+			for (int i = 0; i < jsonBooks.length(); i++) {
+				Book book = new Book();
+				JSONObject jsonBook = jsonBooks.getJSONObject(i);
+				book.setBookid(jsonBook.getString("bookid"));
+				book.setAuthor(jsonBook.getString("author"));
+				book.setTitle(jsonBook.getString("title"));
+				book.setLenguage(jsonBook.getString("lenguage"));
+				book.setEditorial(jsonBook.getString("editorial"));
+				book.setEd_date(jsonBook.getString("ed_date"));
+				book.setPrint_date(jsonBook.getString("print_date"));
+				jsonLinks = jsonBook.getJSONArray("links");
+				parseLinks(jsonLinks, book.getLinks());
+				books.getBooks().add(book);
+			}
+		} catch (IOException e) {
+			throw new LibraryAndroidException(
+					"Can't get response from Library API Web Service");
+		} catch (JSONException e) {
+			throw new LibraryAndroidException("Error parsing Library Root API");
+		}
+
+		return books;
 
 	}
 }

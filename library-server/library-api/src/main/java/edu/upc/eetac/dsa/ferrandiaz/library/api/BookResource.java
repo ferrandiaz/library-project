@@ -12,6 +12,7 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.NotAllowedException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -289,7 +290,7 @@ public class BookResource {
 	@Consumes(MediaType.LIBRARY_API_BOOK)
 	@Produces(MediaType.LIBRARY_API_BOOK)
 	public Book updateBook(Book book, @PathParam ("bookid") int bookid){
-		
+		validateUser();
 		Connection conn = null;
 		try {
 			conn = ds.getConnection();
@@ -334,12 +335,13 @@ public class BookResource {
 	
 
 	private String buildUpdateBook() {
-		return "update books set title=ifnull(?,title), author=ifnull(?, author), lenguage=ifnull(?,lenguage), ed_date=ifnull(?, ed_date), print_date=ifnull(?,print_date), editorial=ifnull(?, editorial), last_modified = now(), where bookid = ?";
+		return "update books set title=ifnull(?,title), author=ifnull(?, author), lenguage=ifnull(?,lenguage), ed_date=ifnull(?, ed_date), print_date=ifnull(?,print_date), editorial=ifnull(?, editorial), last_modified = now() where bookid = ?";
 	}
 	
 	@DELETE
 	@Path("/{bookid}")
 	public void deleteBook(@PathParam ("bookid") int bookid){
+		validateUser();
 		Connection conn = null;
 		
 		try {
@@ -398,5 +400,11 @@ public class BookResource {
 			throw new BadRequestException("Ed_date can't be null");
 		if (book.getPrint_date() == null)
 			throw new BadRequestException("Print_date can't be null");
+	}
+	
+	public void validateUser(){
+		if(!security.getUserPrincipal().getName().equals("admin")){
+			throw new NotAllowedException("You can't do this");
+		}
 	}
 }

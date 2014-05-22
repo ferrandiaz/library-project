@@ -264,8 +264,8 @@ public class ReviewResource {
 		boolean response = validateUser(bookid);
 
 		if (response == false
-				&& !security.getUserPrincipal().getName().equals("admin")) {
-			throw new ForbiddenException("You don't have a review in this book");
+				|| security.getUserPrincipal().getName().equals("admin")) {
+			throw new ForbiddenException("You can't do this");
 		} else {
 			Connection conn = null;
 			try {

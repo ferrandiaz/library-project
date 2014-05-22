@@ -21,13 +21,12 @@ public class BookDetailActivity extends Activity {
 	
 
 	private final static String TAG = BookDetailActivity.class.getName();
-	private static String urlReview;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.book_detail_layout);
 		String urlBook = (String) getIntent().getExtras().get("url");
-		urlReview = urlBook;
 		(new FetchBookTask()).execute(urlBook);
 		
 	}
@@ -44,8 +43,8 @@ public class BookDetailActivity extends Activity {
 		case R.id.miReview:
 
 			Intent intent = new Intent(this, ReviewListActivity.class);
-			urlReview = urlReview + "/review";
-			System.out.println(urlReview);
+			String urlBook = (String) getIntent().getExtras().get("url");
+			String urlReview = urlBook + "/review";
 			intent.putExtra("url", urlReview);
 			startActivity(intent);
 			
